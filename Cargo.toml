@@ -1,0 +1,41 @@
+[package]
+name = "epd-rs"
+version = "0.1.0"
+license = "MIT"
+edition = "2024"
+
+[dependencies]
+defmt-or-log = "*"
+log = { version="*", optional = true }
+defmt = { version="*", optional = true }
+
+# embedded utils
+#-------------------------------------------------------------------------------
+embedded-hal = "*"
+embedded-hal-async = { version = "*", optional = true }
+maybe-async-cfg = "*"
+
+# static_cell = "*"
+# heapless = { version = "*", features = ["ufmt"] }
+# embedded-hal-bus = "*"
+#-------------------------------------------------------------------------------
+
+# screen support
+#-------------------------------------------------------------------------------
+display-interface = "*"
+display-interface-spi = "*"
+embedded-graphics = "*"
+fixedbitset = { version = "*", default-features = false }
+#-------------------------------------------------------------------------------
+
+[features]
+# disable logging
+# default = ["dep:log", "defmt-or-log/log", "log/max_level_off", "log/release_max_level_off"]
+
+# use log for logging
+log = ["dep:log", "defmt-or-log/log"]
+# use defmt for logging
+defmt = ["dep:defmt", "defmt-or-log/defmt"]
+
+# use async hardware interface
+async = ["dep:embedded-hal-async"]
