@@ -31,11 +31,12 @@ where
 {
     pub async fn new(
         epd_interface: DI,
+        dimensions: embedded_graphics::geometry::Size,
         rotation: crate::DisplayRotation,
     ) -> Result<Self, display_interface::DisplayError> {
         let mut this = Self {
             epd_interface,
-            dimensions: embedded_graphics::geometry::Size::new(255, 122),
+            dimensions,
             rotation,
             frame_buffer: fixedbitset::FixedBitSet::with_capacity(
                 ((255/8) * 122) as usize,

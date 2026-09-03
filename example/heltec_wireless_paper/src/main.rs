@@ -41,6 +41,8 @@ fn main() -> ! {
     let dc_pin = peripherals.GPIO5;
     let reset_pin = peripherals.GPIO6;
     let busy_pin = peripherals.GPIO7;
+    const WIDTH: u32 = 255;
+    const HEIGHT: u32 = 122;
     // ------------------------------------------------------------------
 
     // power on the screen
@@ -96,6 +98,7 @@ fn main() -> ! {
     // FIXME only supports the latest boards
     let mut display = epd_rs::E0213A367::new(
         display_interface,
+        embedded_graphics::geometry::Size::new(WIDTH, HEIGHT),
         epd_rs::DisplayRotation::Rotate0,
     ).unwrap();
 
