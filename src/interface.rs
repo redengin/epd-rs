@@ -1,4 +1,5 @@
-use display_interface_spi::SPIInterface;
+/// use standard display errors
+use display_interface::DisplayError;
 /// provide embedded-hal abstractions
 use embedded_hal::{delay::DelayNs, digital::{InputPin, OutputPin}};
 
@@ -8,12 +9,10 @@ use embedded_hal::spi::SpiDevice;
 #[cfg(feature = "async")]
 use embedded_hal_async::spi::SpiDevice;
 
-/// use standard display errors
-use display_interface::DisplayError;
-
+#[allow(dead_code)]
 pub struct EpdInterface<SPI, DC, NBUSY, NRESET>
 {
-    spi_device: display_interface_spi::SPIInterface<SPI, DC>,
+    spi_interface: display_interface_spi::SPIInterface<SPI, DC>,
     /// low while busy
     n_busy: NBUSY,
     /// low to hold in reset
@@ -26,11 +25,11 @@ where
     NRESET: OutputPin,
 {
     pub fn new(
-        spi_device: display_interface_spi::SPIInterface<SPI, DC>,
+        spi_interface: display_interface_spi::SPIInterface<SPI, DC>,
         n_busy: NBUSY,
         n_reset: NRESET,
     ) -> Self {
-        Self { spi_device, n_busy, n_reset }
+        Self { spi_interface, n_busy, n_reset }
     }
 
     pub fn reset(&mut self, delay: &mut impl DelayNs)
@@ -74,16 +73,16 @@ use display_interface::DataFormat;
 )]
 impl<SPI, DC, NBUSY, NRESET> AsyncWriteOnlyDataCommand for EpdInterface<SPI, DC, NBUSY, NRESET>
 where
-    SPIInterface<SPI, DC>: AsyncWriteOnlyDataCommand,
+    display_interface_spi::SPIInterface<SPI, DC>: AsyncWriteOnlyDataCommand,
 {
     async fn send_commands(&mut self, data: DataFormat<'_>) -> Result<(), DisplayError>
     {
-        self.spi_device.send_commands(data).await
+        self.spi_interface.send_commands(data).await
     }
 
     async fn send_data(&mut self, data: DataFormat<'_>) -> Result<(), DisplayError>
     {
-        self.spi_device.send_data(data).await
+        self.spi_interface.send_data(data).await
     }
 }
 

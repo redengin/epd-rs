@@ -6,10 +6,7 @@ fn panic(_: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
-use embedded_graphics::mono_font::MonoTextStyle;
-use embedded_graphics::mono_font::ascii::FONT_10X20;
-use embedded_graphics::pixelcolor::BinaryColor;
-// provide logging primitives
+/// provide logging primitives
 use log::*;
 
 // support esp32
@@ -44,13 +41,9 @@ fn main() -> ! {
     let dc_pin = peripherals.GPIO5;
     let reset_pin = peripherals.GPIO6;
     let busy_pin = peripherals.GPIO7;
-    // dimensions of screen in pixels
-    const WIDTH: usize = 122;
-    const HEIGHT: usize = 200;
     // ------------------------------------------------------------------
 
     // power on the screen
-    // let vext = esp_hal::gpio::Output::new(
     esp_hal::gpio::Output::new(
         vext_control,
         esp_hal::gpio::Level::Low,
@@ -62,8 +55,8 @@ fn main() -> ! {
     // create the SOC SPI bus
     let spi = esp_hal::spi::master::Spi::new(
         peripherals.SPI3,
-        // esp_hal::spi::master::Config::default().with_frequency(esp_hal::time::Rate::from_mhz(20)),
-        esp_hal::spi::master::Config::default().with_frequency(esp_hal::time::Rate::from_mhz(10)),
+        esp_hal::spi::master::Config::default()
+        // .with_frequency(esp_hal::time::Rate::from_mhz(20)),
     )
     .unwrap()
     .with_sck(sck_pin)
@@ -94,80 +87,95 @@ fn main() -> ! {
         esp_hal::gpio::Level::Low,
         esp_hal::gpio::OutputConfig::default(),
     );
-    let display_interface = epd_rs::interface::EpdInterface::new(
+    let display_interface = epd_rs::EpdInterface::new(
         spi_interface,
         n_busy,
         n_reset,
         // &mut esp_hal::delay::Delay::new(),
     );
-    // let mut display = epd_ssd1680::Ssd1680::new(
-    //     screen_interface,
-    //     dimensions,
-    //     epd_ssd1680::DisplayRotation::Rotate0,
-    // )
-    // .unwrap();
+    // FIXME only supports the latest boards
+    let mut display = epd_rs::E0213A367::new(
+        display_interface,
+        epd_rs::DisplayRotation::Rotate0,
+    ).unwrap();
 
-
-    let example_screen = ExampleScreen::new();
-
-    let mut frame_rate: f32 = 0.0;
     loop {
-        // update the screen
-        // let _ = example_screen
-        //     .update(&mut display, frame_rate)
-        //     .map_err(|e| error!("{:?}", e));
+        // let frame_start = Instant::now();
 
-        // monitor the frame rate
-        let frame_start = Instant::now();
+        // let _ = display.flush();
+        // esp_hal::delay::Delay::new().delay_millis(500);
 
-        // let _ = display.flush().map_err(|e| error!("{:?}", e));
-
-        let frame_period = frame_start.elapsed();
-        frame_rate = 1000.0 / (frame_period.as_millis() as f32);
-        info!(
-            "frame_period: {} ms   FPS: {frame_rate:.0} Hz",
-            frame_period.as_millis()
-        );
-    }
-}
-
-use alloc::string::String;
-use core::fmt::Write;
-use display_interface::DisplayError;
-use embedded_graphics::prelude::*;
-use embedded_graphics::text::Text;
-struct ExampleScreen {
-    text: embedded_graphics::mono_font::MonoTextStyle<'static, BinaryColor>,
-}
-impl ExampleScreen {
-    pub fn new() -> Self {
-        Self {
-            text: MonoTextStyle::new(&FONT_10X20, BinaryColor::On),
-        }
+        // let frame_period = frame_start.elapsed();
+        // let frame_rate = 1000.0 / (frame_period.as_millis() as f32);
+        // info!(
+        //     "frame_period: {} ms   FPS: {frame_rate:.0} Hz",
+        //     frame_period.as_millis()
+        // );
     }
 
-    // pub fn update<DI>(
-    pub fn update(
-        &self,
-        display: &mut impl DrawTarget<Color = BinaryColor>,
-        frame_rate: f32,
-    ) -> Result<(), DisplayError> {
-        let _ = display.clear(embedded_graphics::pixelcolor::BinaryColor::Off);
+    // let example_screen = ExampleScreen::new();
 
-        let _ = Text::new("Hello World!", Point::zero(), self.text).draw(display);
+    // let mut frame_rate: f32 = 0.0;
+    // loop {
+    //     // update the screen
+    //     // let _ = example_screen
+    //     //     .update(&mut display, frame_rate)
+    //     //     .map_err(|e| error!("{:?}", e));
 
-        let mut fps_text_string = String::new();
-        let _ = write!(&mut fps_text_string, "FPS: {frame_rate:.0}");
-        let _ = Text::with_alignment(
-            &fps_text_string,
-            display.bounding_box().center(),
-            self.text,
-            embedded_graphics::text::Alignment::Center,
-        )
-        .draw(display);
+    //     // monitor the frame rate
+    //     let frame_start = Instant::now();
 
-        // esp_hal::delay::Delay::new().delay_millis(2000);
+    //     // let _ = display.flush().map_err(|e| error!("{:?}", e));
 
-        Ok(())
-    }
+    //     let frame_period = frame_start.elapsed();
+    //     frame_rate = 1000.0 / (frame_period.as_millis() as f32);
+    //     info!(
+    //         "frame_period: {} ms   FPS: {frame_rate:.0} Hz",
+    //         frame_period.as_millis()
+    //     );
+    // }
 }
+
+// use embedded_graphics::mono_font::MonoTextStyle;
+// use embedded_graphics::mono_font::ascii::FONT_10X20;
+// use embedded_graphics::pixelcolor::BinaryColor;
+// use alloc::string::String;
+// use core::fmt::Write;
+// use display_interface::DisplayError;
+// use embedded_graphics::prelude::*;
+// use embedded_graphics::text::Text;
+// struct ExampleScreen {
+//     text: embedded_graphics::mono_font::MonoTextStyle<'static, BinaryColor>,
+// }
+// impl ExampleScreen {
+//     pub fn new() -> Self {
+//         Self {
+//             text: MonoTextStyle::new(&FONT_10X20, BinaryColor::On),
+//         }
+//     }
+
+//     // pub fn update<DI>(
+//     pub fn update(
+//         &self,
+//         display: &mut impl DrawTarget<Color = BinaryColor>,
+//         frame_rate: f32,
+//     ) -> Result<(), DisplayError> {
+//         let _ = display.clear(embedded_graphics::pixelcolor::BinaryColor::Off);
+
+//         let _ = Text::new("Hello World!", Point::zero(), self.text).draw(display);
+
+//         let mut fps_text_string = String::new();
+//         let _ = write!(&mut fps_text_string, "FPS: {frame_rate:.0}");
+//         let _ = Text::with_alignment(
+//             &fps_text_string,
+//             display.bounding_box().center(),
+//             self.text,
+//             embedded_graphics::text::Alignment::Center,
+//         )
+//         .draw(display);
+
+//         // esp_hal::delay::Delay::new().delay_millis(2000);
+
+//         Ok(())
+//     }
+// }
