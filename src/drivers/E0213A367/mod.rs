@@ -22,7 +22,7 @@ pub struct E0213A367<DI> {
     idents(
         AsyncWriteOnlyDataCommand(async, sync = "WriteOnlyDataCommand"),
         init(keep),
-        flush(keep),
+        refresh(keep),
     )
 )]
 impl<DI> E0213A367<DI>
@@ -80,7 +80,7 @@ where
         Ok(())
     }
 
-    pub async fn flush(&mut self) -> Result<(), display_interface::DisplayError> {
+    async fn refresh(&mut self) -> Result<(), display_interface::DisplayError> {
 
         // set the X cursor
         self.epd_interface.send_commands(DataFormat::U8(&[0x4E])).await?;
@@ -100,6 +100,29 @@ where
         // start update
         self.epd_interface.send_commands(DataFormat::U8(&[0x20])).await?;
         self.epd_interface.wait_until_idle()?;
+
+        Ok(())
+    }
+}
+
+
+#[maybe_async_cfg::maybe(
+    sync(keep_self, cfg(not(feature = "async"))),
+    async(keep_self, feature = "async"),
+    idents(
+        AsyncWriteOnlyDataCommand(async, sync = "WriteOnlyDataCommand"),
+        flush(keep),
+    )
+)]
+impl<DI> crate::EpdDrawTarget for E0213A367<DI>
+where
+    DI: display_interface::AsyncWriteOnlyDataCommand + crate::WaitUntilIdle,
+{
+    // type Color = embedded_graphics::pixelcolor::BinaryColor;
+
+    async fn flush(&mut self) -> Result<(), display_interface::DisplayError>
+    {
+        self.refresh().await?;
 
         Ok(())
     }

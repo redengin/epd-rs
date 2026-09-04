@@ -97,6 +97,7 @@ impl<SPI, DC, NBUSY, NRESET, DELAY> crate::AsyncWaitUntilIdle for EpdInterface<S
 
 // Provide display_interface_spi primitives
 //------------------------------------------------------------------------------
+// chooose the display_interface abstraction
 #[cfg(not(feature = "async"))]
 use display_interface::WriteOnlyDataCommand;
 #[cfg(feature = "async")]

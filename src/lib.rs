@@ -1,5 +1,6 @@
 #![no_std]
-
+#![allow(async_fn_in_trait)]    // doesn't use Dynamic Dispact or Send
+ 
 /// provide hardware interface
 mod interface;
 pub use interface::EpdInterface;
@@ -25,32 +26,31 @@ pub enum DisplayRotation {
 
 
 pub trait WaitUntilIdle {
-    /// wait on the N_BUSY pin
+    /// blocks until idle, or returns error upon timeout
     fn wait_until_idle(&mut self) ->
         Result<(), display_interface::DisplayError>;
 }
+/// Yielding 
 pub trait AsyncWaitUntilIdle {
-    /// wait on the N_BUSY pin
+    /// yields until idle, or returns error upon timeout
     async fn wait_until_idle(&mut self) ->
         Result<(), display_interface::DisplayError>;
 }
 
 
 
-// /// provide embedded_graphics support
-// #[maybe_async_cfg::maybe(
-//     sync(keep_self, cfg(not(feature = "async"))),
-//     async(keep_self, feature = "async"),
-//     idents(
-//         // AsyncWriteOnlyDataCommand(async, sync = "WriteOnlyDataCommand"),
-//         init(keep),
-//         flush(keep),
-//     )
-// )]
-// pub trait EpdDrawTarget
-// {
-//     /// configure the hardware for graphics
-//     async fn init(&mut self) -> Result<(), display_interface::DisplayError>;
-
-//     async fn flush(&mut self) -> Result<(), display_interface::DisplayError>;
-// }
+/// provide embedded_graphics support
+#[maybe_async_cfg::maybe(
+    sync(keep_self, cfg(not(feature = "async"))),
+    async(keep_self, feature = "async"),
+    idents(
+        flush(keep),
+    )
+)]
+// pub trait EpdDrawTarget : embedded_graphics::draw_target::DrawTarget
+pub trait EpdDrawTarget
+{
+    /// EPDs don't support drawable pixels, so after "drawing" a flush() must
+    /// be issued to update the display
+    async fn flush(&mut self) -> Result<(), display_interface::DisplayError>;
+}
