@@ -27,7 +27,7 @@ pub struct E0213A367<DI> {
 )]
 impl<DI> E0213A367<DI>
 where
-    DI: display_interface::AsyncWriteOnlyDataCommand,
+    DI: display_interface::AsyncWriteOnlyDataCommand + crate::WaitUntilIdle,
 {
     pub async fn new(
         epd_interface: DI,
@@ -50,18 +50,65 @@ where
     }
 
     pub async fn init(&mut self) -> Result<(), display_interface::DisplayError> {
-        // // power setting
-        // self.epd_interface
-        //     .send_commands(DataFormat::U8(&[0x01]))
-        //     .await?;
-        // self.epd_interface
-        //     .send_data(DataFormat::U8(&[0x03, 0x00, 0x2b, 0x2b, 0x03]))
-        //     .await?;
+        // set display option to FULLSCREEN
+        self.epd_interface.send_commands(DataFormat::U8(&[0x37])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0x00, 0x80, 0x03, 0x0E])).await?;
+
+        // set border waveform
+        self.epd_interface.send_commands(DataFormat::U8(&[0x3C])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0x01])).await?;
+        self.epd_interface.wait_until_idle()?;
 
         Ok(())
     }
 
     pub async fn flush(&mut self) -> Result<(), display_interface::DisplayError> {
+        // set display option to FULLSCREEN
+        self.epd_interface.send_commands(DataFormat::U8(&[0x37])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0x00, 0x80, 0x03, 0x0E])).await?;
+
+        // set border waveform
+        self.epd_interface.send_commands(DataFormat::U8(&[0x3C])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0x01])).await?;
+        self.epd_interface.wait_until_idle()?;
+
+        // configure data entry mode
+        self.epd_interface.send_commands(DataFormat::U8(&[0x11])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0x03])).await?;
+
+        // select memory region X
+        self.epd_interface.send_commands(DataFormat::U8(&[0x44])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0x00, (122/8 as u8)])).await?;
+        // select memory region Y
+        self.epd_interface.send_commands(DataFormat::U8(&[0x45])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0x00, 255 as u8])).await?;
+
+        // configure normal mode
+        self.epd_interface.send_commands(DataFormat::U8(&[0x22])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0xF7])).await?;
+        // configure fast mode
+        // self.epd_interface.send_commands(DataFormat::U8(&[0x22])).await?;
+        // self.epd_interface.send_data(DataFormat::U8(&[0xFF])).await?;
+
+        // set the X cursor
+        self.epd_interface.send_commands(DataFormat::U8(&[0x4E])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0x00])).await?;
+        // set the Y cursor
+        self.epd_interface.send_commands(DataFormat::U8(&[0x4F])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0x00])).await?;
+
+        // update B/W (fast mode OFF)
+        self.epd_interface.send_commands(DataFormat::U8(&[0x24])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0xFF; ((122/8 + 1) * 255)])).await?;
+        // update B/W "red" (fast mode OFF)
+        self.epd_interface.send_commands(DataFormat::U8(&[0x26])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0xFF; ((122/8 + 1) * 255)])).await?;
+
+
+        // start update
+        self.epd_interface.send_commands(DataFormat::U8(&[0x20])).await?;
+        self.epd_interface.wait_until_idle()?;
+
         Ok(())
     }
 }

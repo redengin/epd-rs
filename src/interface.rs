@@ -1,3 +1,6 @@
+/// provide logging primitives
+use defmt_or_log::*;
+
 /// use standard display errors
 use display_interface::DisplayError;
 /// provide embedded-hal abstractions
@@ -10,47 +13,63 @@ use embedded_hal::spi::SpiDevice;
 use embedded_hal_async::spi::SpiDevice;
 
 #[allow(dead_code)]
-pub struct EpdInterface<SPI, DC, NBUSY, NRESET>
+pub struct EpdInterface<SPI, DC, NBUSY, NRESET, DELAY>
 {
     spi_interface: display_interface_spi::SPIInterface<SPI, DC>,
     /// low while busy
     n_busy: NBUSY,
     /// low to hold in reset
     n_reset: NRESET,
+    delay: DELAY,
 }
-impl<SPI, DC, NBUSY, NRESET> EpdInterface<SPI, DC, NBUSY, NRESET>
+impl<SPI, DC, NBUSY, NRESET, DELAY> EpdInterface<SPI, DC, NBUSY, NRESET, DELAY>
 where
     SPI: SpiDevice,
     NBUSY: InputPin,
     NRESET: OutputPin,
+    DELAY: embedded_hal::delay::DelayNs
 {
     pub fn new(
         spi_interface: display_interface_spi::SPIInterface<SPI, DC>,
         n_busy: NBUSY,
         n_reset: NRESET,
-    ) -> Self {
-        Self { spi_interface, n_busy, n_reset }
+        delay: DELAY,
+    ) -> Self
+    {
+        let mut this = Self { spi_interface, n_busy, n_reset, delay };
+        this.reset();
+        this
     }
 
-    pub fn reset(&mut self, delay: &mut impl DelayNs)
+    pub fn reset(&mut self)
     {
         self.n_reset.set_low().unwrap();
-        delay.delay_ms(10);
+        self.delay.delay_ms(100);
         self.n_reset.set_high().unwrap();
-        delay.delay_ms(10);
+        self.delay.delay_ms(100);
     }
+}
 
-    pub fn wait_until_idle(&mut self, delay: &mut impl DelayNs) -> Result<(), DisplayError>
+impl<SPI, DC, NBUSY, NRESET, DELAY> crate::WaitUntilIdle for EpdInterface<SPI, DC, NBUSY, NRESET, DELAY>
+ where
+    SPI: SpiDevice,
+    NBUSY: InputPin,
+    NRESET: OutputPin,
+    DELAY: embedded_hal::delay::DelayNs
+{
+    fn wait_until_idle(&mut self) -> Result<(), DisplayError>
     {
-        for _ in 0..3
+        for _ in 0..4
         {
-            if self.n_busy.is_high().expect("failed to read busy pin")
+            if self.n_busy.is_low().expect("failed to read busy pin")
             {
+                info!("idle asserted");
                 return Ok(())
             }
-            delay.delay_ms(10);
+            self.delay.delay_ms(500);
         }
 
+        error!("idle not asserted");
         Err(display_interface::DisplayError::RSError)
     }
 }
@@ -71,7 +90,7 @@ use display_interface::DataFormat;
         AsyncWriteOnlyDataCommand(async, sync = "WriteOnlyDataCommand"),
     )
 )]
-impl<SPI, DC, NBUSY, NRESET> AsyncWriteOnlyDataCommand for EpdInterface<SPI, DC, NBUSY, NRESET>
+impl<SPI, DC, NBUSY, NRESET, DELAY> AsyncWriteOnlyDataCommand for EpdInterface<SPI, DC, NBUSY, NRESET, DELAY>
 where
     display_interface_spi::SPIInterface<SPI, DC>: AsyncWriteOnlyDataCommand,
 {

@@ -58,7 +58,7 @@ fn main() -> ! {
     let spi = esp_hal::spi::master::Spi::new(
         peripherals.SPI3,
         esp_hal::spi::master::Config::default()
-        // .with_frequency(esp_hal::time::Rate::from_mhz(20)),
+            .with_frequency(esp_hal::time::Rate::from_mhz(20)),
     )
     .unwrap()
     .with_sck(sck_pin)
@@ -93,7 +93,7 @@ fn main() -> ! {
         spi_interface,
         n_busy,
         n_reset,
-        // &mut esp_hal::delay::Delay::new(),
+        esp_hal::delay::Delay::new(),
     );
     // FIXME only supports the latest boards
     let mut display = epd_rs::E0213A367::new(
@@ -105,8 +105,8 @@ fn main() -> ! {
     loop {
         // let frame_start = Instant::now();
 
-        // let _ = display.flush();
-        // esp_hal::delay::Delay::new().delay_millis(500);
+        let _ = display.flush();
+        esp_hal::delay::Delay::new().delay_millis(2000);
 
         // let frame_period = frame_start.elapsed();
         // let frame_rate = 1000.0 / (frame_period.as_millis() as f32);

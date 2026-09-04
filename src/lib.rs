@@ -24,11 +24,11 @@ pub enum DisplayRotation {
 }
 
 
-// pub trait WaitUntilIdle {
-//     /// wait on the N_BUSY pin
-//     fn wait_until_idle(&mut self, &mut impl embedded_hal::delay::DelayNs) ->
-//         Result<(), display_interface::DisplayError>;
-// }
+pub trait WaitUntilIdle {
+    /// wait on the N_BUSY pin
+    fn wait_until_idle(&mut self) ->
+        Result<(), display_interface::DisplayError>;
+}
 
 
 

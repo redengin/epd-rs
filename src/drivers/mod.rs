@@ -1,4 +1,5 @@
 
 
-/// provide support for Heltec Wireless Paper v1.1.1, v1.2
 pub mod E0213A367;
+// pub mod DEPG0213BNS800;
+// pub mod LCMEN2R13EFC1:
