@@ -80,7 +80,7 @@ where
         Ok(())
     }
 
-    async fn refresh(&mut self) -> Result<(), display_interface::DisplayError> {
+    pub async fn refresh(&mut self) -> Result<(), display_interface::DisplayError> {
 
         // set the X cursor
         self.epd_interface.send_commands(DataFormat::U8(&[0x4E])).await?;

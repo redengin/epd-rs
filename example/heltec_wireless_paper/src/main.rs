@@ -105,7 +105,7 @@ fn main() -> ! {
     loop {
         // let frame_start = Instant::now();
 
-        let _ = display.flush();
+        let _ = display.refresh();
         esp_hal::delay::Delay::new().delay_millis(2000);
 
         // let frame_period = frame_start.elapsed();
