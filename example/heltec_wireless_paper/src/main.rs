@@ -41,8 +41,8 @@ fn main() -> ! {
     let dc_pin = peripherals.GPIO5;
     let reset_pin = peripherals.GPIO6;
     let busy_pin = peripherals.GPIO7;
-    const WIDTH: u32 = 255;
-    const HEIGHT: u32 = 122;
+    const WIDTH: u32 = 122;
+    const HEIGHT: u32 = 250;
     // ------------------------------------------------------------------
 
     // power on the screen

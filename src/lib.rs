@@ -29,6 +29,11 @@ pub trait WaitUntilIdle {
     fn wait_until_idle(&mut self) ->
         Result<(), display_interface::DisplayError>;
 }
+pub trait AsyncWaitUntilIdle {
+    /// wait on the N_BUSY pin
+    async fn wait_until_idle(&mut self) ->
+        Result<(), display_interface::DisplayError>;
+}
 
 
 

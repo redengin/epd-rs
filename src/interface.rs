@@ -4,13 +4,19 @@ use defmt_or_log::*;
 /// use standard display errors
 use display_interface::DisplayError;
 /// provide embedded-hal abstractions
-use embedded_hal::{delay::DelayNs, digital::{InputPin, OutputPin}};
+use embedded_hal::digital::{InputPin, OutputPin};
 
-/// choose async abstraction
+/// choose async SpiDevice abstraction
 #[cfg(not(feature = "async"))]
 use embedded_hal::spi::SpiDevice;
 #[cfg(feature = "async")]
 use embedded_hal_async::spi::SpiDevice;
+
+/// choose async Delay abstraction
+#[cfg(not(feature = "async"))]
+use embedded_hal::delay::DelayNs;
+#[cfg(feature = "async")]
+use embedded_hal_async::delay::DelayNs;
 
 #[allow(dead_code)]
 pub struct EpdInterface<SPI, DC, NBUSY, NRESET, DELAY>
@@ -22,14 +28,22 @@ pub struct EpdInterface<SPI, DC, NBUSY, NRESET, DELAY>
     n_reset: NRESET,
     delay: DELAY,
 }
+#[maybe_async_cfg::maybe(
+    sync(keep_self, cfg(not(feature="async"))),
+    async(keep_self, feature="async"),
+    idents(
+        new(keep),
+        reset(keep),
+    )
+)]
 impl<SPI, DC, NBUSY, NRESET, DELAY> EpdInterface<SPI, DC, NBUSY, NRESET, DELAY>
 where
     SPI: SpiDevice,
     NBUSY: InputPin,
     NRESET: OutputPin,
-    DELAY: embedded_hal::delay::DelayNs
+    DELAY: DelayNs
 {
-    pub fn new(
+    pub async fn new(
         spi_interface: display_interface_spi::SPIInterface<SPI, DC>,
         n_busy: NBUSY,
         n_reset: NRESET,
@@ -37,27 +51,34 @@ where
     ) -> Self
     {
         let mut this = Self { spi_interface, n_busy, n_reset, delay };
-        this.reset();
+        this.reset().await;
         this
     }
 
-    pub fn reset(&mut self)
+    pub async fn reset(&mut self)
     {
         self.n_reset.set_low().unwrap();
-        self.delay.delay_ms(100);
+        self.delay.delay_ms(10).await;
         self.n_reset.set_high().unwrap();
-        self.delay.delay_ms(100);
+        self.delay.delay_ms(10).await;
     }
 }
 
-impl<SPI, DC, NBUSY, NRESET, DELAY> crate::WaitUntilIdle for EpdInterface<SPI, DC, NBUSY, NRESET, DELAY>
+#[maybe_async_cfg::maybe(
+    sync(keep_self, cfg(not(feature="async"))),
+    async(keep_self, feature="async"),
+    idents(
+        AsyncWaitUntilIdle(async, sync="WaitUntilIdle"),
+    )
+)]
+impl<SPI, DC, NBUSY, NRESET, DELAY> crate::AsyncWaitUntilIdle for EpdInterface<SPI, DC, NBUSY, NRESET, DELAY>
  where
     SPI: SpiDevice,
     NBUSY: InputPin,
     NRESET: OutputPin,
-    DELAY: embedded_hal::delay::DelayNs
+    DELAY: DelayNs,
 {
-    fn wait_until_idle(&mut self) -> Result<(), DisplayError>
+    async fn wait_until_idle(&mut self) -> Result<(), DisplayError>
     {
         for _ in 0..4
         {
@@ -66,7 +87,7 @@ impl<SPI, DC, NBUSY, NRESET, DELAY> crate::WaitUntilIdle for EpdInterface<SPI, D
                 info!("idle asserted");
                 return Ok(())
             }
-            self.delay.delay_ms(500);
+            self.delay.delay_ms(500).await;
         }
 
         error!("idle not asserted");
