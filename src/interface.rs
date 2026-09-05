@@ -65,7 +65,7 @@ where
     }
 }
 
-// Provide wait until idle
+// Trait: WaitUntilIdle/AysncWaitUntilIdle
 //------------------------------------------------------------------------------
 #[cfg(not(feature = "async"))]
 pub trait WaitUntilIdle {
@@ -80,7 +80,8 @@ pub trait AsyncWaitUntilIdle {
         Result<(), display_interface::DisplayError>;
 }
 
-/// provide wait until idle
+// Provide WaitUntilIdle/AysncWaitUntilIdle
+//------------------------------------------------------------------------------
 #[maybe_async_cfg::maybe(
     sync(keep_self, cfg(not(feature="async"))),
     async(keep_self, feature="async"),
@@ -112,14 +113,12 @@ impl<SPI, DC, NBUSY, NRESET, DELAY> AsyncWaitUntilIdle for EpdInterface<SPI, DC,
     }
 }
 
-// Provide display_interface_spi primitives
+// Provide WriteOnlyDataCommand/AsycnWriteOnlyDataCommand
 //------------------------------------------------------------------------------
 #[cfg(not(feature = "async"))]
 use display_interface::WriteOnlyDataCommand;
 #[cfg(feature = "async")]
 use display_interface::AsyncWriteOnlyDataCommand;
-
-use display_interface::DataFormat;
 
 #[maybe_async_cfg::maybe(
     sync(keep_self, cfg(not(feature="async"))),
@@ -132,12 +131,12 @@ impl<SPI, DC, NBUSY, NRESET, DELAY> AsyncWriteOnlyDataCommand for EpdInterface<S
 where
     display_interface_spi::SPIInterface<SPI, DC>: AsyncWriteOnlyDataCommand,
 {
-    async fn send_commands(&mut self, data: DataFormat<'_>) -> Result<(), DisplayError>
+    async fn send_commands(&mut self, data: display_interface::DataFormat<'_>) -> Result<(), DisplayError>
     {
         self.spi_interface.send_commands(data).await
     }
 
-    async fn send_data(&mut self, data: DataFormat<'_>) -> Result<(), DisplayError>
+    async fn send_data(&mut self, data: display_interface::DataFormat<'_>) -> Result<(), DisplayError>
     {
         self.spi_interface.send_data(data).await
     }
