@@ -6,21 +6,20 @@ use display_interface::DisplayError;
 /// provide embedded-hal abstractions
 use embedded_hal::digital::{InputPin, OutputPin};
 
-/// choose async SpiDevice abstraction
+/// choose SpiDevice abstraction
 #[cfg(not(feature = "async"))]
 use embedded_hal::spi::SpiDevice;
 #[cfg(feature = "async")]
 use embedded_hal_async::spi::SpiDevice;
 
-/// choose async Delay abstraction
+/// choose Delay abstraction
 #[cfg(not(feature = "async"))]
 use embedded_hal::delay::DelayNs;
 #[cfg(feature = "async")]
 use embedded_hal_async::delay::DelayNs;
 
 /// Hardware interface to an EPD
-pub struct EpdInterface<SPI, DC, NBUSY, NRESET, DELAY>
-{
+pub struct EpdInterface<SPI, DC, NBUSY, NRESET, DELAY> {
     spi_interface: display_interface_spi::SPIInterface<SPI, DC>,
     /// low while busy
     n_busy: NBUSY,
@@ -29,35 +28,35 @@ pub struct EpdInterface<SPI, DC, NBUSY, NRESET, DELAY>
     delay: DELAY,
 }
 #[maybe_async_cfg::maybe(
-    sync(keep_self, cfg(not(feature="async"))),
-    async(keep_self, feature="async"),
-    idents(
-        new(keep),
-        reset(keep),
-    )
+    sync(keep_self, cfg(not(feature = "async"))),
+    async(keep_self, feature = "async"),
+    idents(new(keep), reset(keep),)
 )]
 impl<SPI, DC, NBUSY, NRESET, DELAY> EpdInterface<SPI, DC, NBUSY, NRESET, DELAY>
 where
     SPI: SpiDevice,
     NBUSY: InputPin,
     NRESET: OutputPin,
-    DELAY: DelayNs
+    DELAY: DelayNs,
 {
     pub async fn new(
         spi_interface: display_interface_spi::SPIInterface<SPI, DC>,
         n_busy: NBUSY,
         n_reset: NRESET,
         delay: DELAY,
-    ) -> Self
-    {
-        let mut this = Self { spi_interface, n_busy, n_reset, delay };
+    ) -> Self {
+        let mut this = Self {
+            spi_interface,
+            n_busy,
+            n_reset,
+            delay,
+        };
         this.reset().await;
         this
     }
 
     /// perform a hardware reset of the EPD
-    pub async fn reset(&mut self)
-    {
+    pub async fn reset(&mut self) {
         self.n_reset.set_low().unwrap();
         self.delay.delay_ms(10).await;
         self.n_reset.set_high().unwrap();
@@ -65,45 +64,37 @@ where
     }
 }
 
-// Trait: WaitUntilIdle/AysncWaitUntilIdle
-//------------------------------------------------------------------------------
 #[cfg(not(feature = "async"))]
 pub trait WaitUntilIdle {
     /// blocks until idle, or returns error upon timeout
-    fn wait_until_idle(&mut self) ->
-        Result<(), display_interface::DisplayError>;
+    fn wait_until_idle(&mut self) -> Result<(), display_interface::DisplayError>;
 }
 #[cfg(feature = "async")]
 pub trait AsyncWaitUntilIdle {
     /// yields until idle, or returns error upon timeout
-    async fn wait_until_idle(&mut self) ->
-        Result<(), display_interface::DisplayError>;
+    async fn wait_until_idle(&mut self) -> Result<(), display_interface::DisplayError>;
 }
 
-// Provide WaitUntilIdle/AysncWaitUntilIdle
+// Provide [WaitUntilIdle/AysncWaitUntilIdle]
 //------------------------------------------------------------------------------
 #[maybe_async_cfg::maybe(
-    sync(keep_self, cfg(not(feature="async"))),
-    async(keep_self, feature="async"),
-    idents(
-        AsyncWaitUntilIdle(async, sync="WaitUntilIdle"),
-    )
+    sync(keep_self, cfg(not(feature = "async"))),
+    async(keep_self, feature = "async"),
+    idents(AsyncWaitUntilIdle(async, sync = "WaitUntilIdle"),)
 )]
-impl<SPI, DC, NBUSY, NRESET, DELAY> AsyncWaitUntilIdle for EpdInterface<SPI, DC, NBUSY, NRESET, DELAY>
- where
+impl<SPI, DC, NBUSY, NRESET, DELAY> AsyncWaitUntilIdle
+    for EpdInterface<SPI, DC, NBUSY, NRESET, DELAY>
+where
     SPI: SpiDevice,
     NBUSY: InputPin,
     NRESET: OutputPin,
     DELAY: DelayNs,
 {
-    async fn wait_until_idle(&mut self) -> Result<(), DisplayError>
-    {
-        for _ in 0..4
-        {
-            if self.n_busy.is_low().expect("failed to read busy pin")
-            {
+    async fn wait_until_idle(&mut self) -> Result<(), DisplayError> {
+        for _ in 0..4 {
+            if self.n_busy.is_low().expect("failed to read busy pin") {
                 info!("idle asserted");
-                return Ok(())
+                return Ok(());
             }
             self.delay.delay_ms(500).await;
         }
@@ -113,31 +104,34 @@ impl<SPI, DC, NBUSY, NRESET, DELAY> AsyncWaitUntilIdle for EpdInterface<SPI, DC,
     }
 }
 
-// Provide WriteOnlyDataCommand/AsycnWriteOnlyDataCommand
+// Provide display_interface::[WriteOnlyDataCommand/AsycnWriteOnlyDataCommand]
 //------------------------------------------------------------------------------
-#[cfg(not(feature = "async"))]
-use display_interface::WriteOnlyDataCommand;
 #[cfg(feature = "async")]
 use display_interface::AsyncWriteOnlyDataCommand;
+#[cfg(not(feature = "async"))]
+use display_interface::WriteOnlyDataCommand;
 
 #[maybe_async_cfg::maybe(
-    sync(keep_self, cfg(not(feature="async"))),
-    async(keep_self, feature="async"),
-    idents(
-        AsyncWriteOnlyDataCommand(async, sync = "WriteOnlyDataCommand"),
-    )
+    sync(keep_self, cfg(not(feature = "async"))),
+    async(keep_self, feature = "async"),
+    idents(AsyncWriteOnlyDataCommand(async, sync = "WriteOnlyDataCommand"),)
 )]
-impl<SPI, DC, NBUSY, NRESET, DELAY> AsyncWriteOnlyDataCommand for EpdInterface<SPI, DC, NBUSY, NRESET, DELAY>
+impl<SPI, DC, NBUSY, NRESET, DELAY> AsyncWriteOnlyDataCommand
+    for EpdInterface<SPI, DC, NBUSY, NRESET, DELAY>
 where
     display_interface_spi::SPIInterface<SPI, DC>: AsyncWriteOnlyDataCommand,
 {
-    async fn send_commands(&mut self, data: display_interface::DataFormat<'_>) -> Result<(), DisplayError>
-    {
+    async fn send_commands(
+        &mut self,
+        data: display_interface::DataFormat<'_>,
+    ) -> Result<(), DisplayError> {
         self.spi_interface.send_commands(data).await
     }
 
-    async fn send_data(&mut self, data: display_interface::DataFormat<'_>) -> Result<(), DisplayError>
-    {
+    async fn send_data(
+        &mut self,
+        data: display_interface::DataFormat<'_>,
+    ) -> Result<(), DisplayError> {
         self.spi_interface.send_data(data).await
     }
 }
