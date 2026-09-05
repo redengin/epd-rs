@@ -18,7 +18,7 @@ use embedded_hal::delay::DelayNs;
 #[cfg(feature = "async")]
 use embedded_hal_async::delay::DelayNs;
 
-#[allow(dead_code)]
+/// Hardware interface to an EPD
 pub struct EpdInterface<SPI, DC, NBUSY, NRESET, DELAY>
 {
     spi_interface: display_interface_spi::SPIInterface<SPI, DC>,
@@ -55,6 +55,7 @@ where
         this
     }
 
+    /// perform a hardware reset of the EPD
     pub async fn reset(&mut self)
     {
         self.n_reset.set_low().unwrap();
@@ -64,18 +65,22 @@ where
     }
 }
 
+// Provide wait until idle
+//------------------------------------------------------------------------------
+#[cfg(not(feature = "async"))]
 pub trait WaitUntilIdle {
     /// blocks until idle, or returns error upon timeout
     fn wait_until_idle(&mut self) ->
         Result<(), display_interface::DisplayError>;
 }
-/// Yielding 
+#[cfg(feature = "async")]
 pub trait AsyncWaitUntilIdle {
     /// yields until idle, or returns error upon timeout
     async fn wait_until_idle(&mut self) ->
         Result<(), display_interface::DisplayError>;
 }
 
+/// provide wait until idle
 #[maybe_async_cfg::maybe(
     sync(keep_self, cfg(not(feature="async"))),
     async(keep_self, feature="async"),
@@ -109,7 +114,6 @@ impl<SPI, DC, NBUSY, NRESET, DELAY> AsyncWaitUntilIdle for EpdInterface<SPI, DC,
 
 // Provide display_interface_spi primitives
 //------------------------------------------------------------------------------
-// chooose the display_interface abstraction
 #[cfg(not(feature = "async"))]
 use display_interface::WriteOnlyDataCommand;
 #[cfg(feature = "async")]
@@ -138,4 +142,3 @@ where
         self.spi_interface.send_data(data).await
     }
 }
-
