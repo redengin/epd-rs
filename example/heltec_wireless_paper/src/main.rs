@@ -96,7 +96,7 @@ fn main() -> ! {
         esp_hal::delay::Delay::new(),
     );
     // FIXME only supports the latest boardsA
-    let mut driver = epd_rs::drivers::E0213A367::E0213A367::new(
+    let mut driver = epd_rs::drivers::E0213A367::new(
         display_interface,
         embedded_graphics::geometry::Size::new(WIDTH, HEIGHT),
     ).unwrap();
