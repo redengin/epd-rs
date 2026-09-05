@@ -95,31 +95,16 @@ fn main() -> ! {
         n_reset,
         esp_hal::delay::Delay::new(),
     );
-    // FIXME only supports the latest boards
-    let mut display = epd_rs::E0213A367::new(
+    // FIXME only supports the latest boardsA
+    let mut driver = epd_rs::drivers::E0213A367::E0213A367::new(
         display_interface,
         embedded_graphics::geometry::Size::new(WIDTH, HEIGHT),
-        epd_rs::DisplayRotation::Rotate0,
     ).unwrap();
-
-    loop {
-        // let frame_start = Instant::now();
-
-        let _ = display.refresh();
-        esp_hal::delay::Delay::new().delay_millis(2000);
-
-        // let frame_period = frame_start.elapsed();
-        // let frame_rate = 1000.0 / (frame_period.as_millis() as f32);
-        // info!(
-        //     "frame_period: {} ms   FPS: {frame_rate:.0} Hz",
-        //     frame_period.as_millis()
-        // );
-    }
 
     // let example_screen = ExampleScreen::new();
 
     // let mut frame_rate: f32 = 0.0;
-    // loop {
+    loop {
     //     // update the screen
     //     // let _ = example_screen
     //     //     .update(&mut display, frame_rate)
@@ -136,7 +121,7 @@ fn main() -> ! {
     //         "frame_period: {} ms   FPS: {frame_rate:.0} Hz",
     //         frame_period.as_millis()
     //     );
-    // }
+    }
 }
 
 // use embedded_graphics::mono_font::MonoTextStyle;

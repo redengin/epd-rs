@@ -6,12 +6,10 @@ use embedded_graphics::pixelcolor::BinaryColor;
 use display_interface::DisplayError;
 use embedded_graphics::primitives::Rectangle;
 
-use crate::DisplayRotation;
-
 pub struct EpdDrawTarget<DRIVER> {
     driver: DRIVER,
     frame_buffer: fixedbitset::FixedBitSet,
-    rotation: crate::DisplayRotation,
+    rotation: DisplayRotation,
 }
 
 #[maybe_async_cfg::maybe(
@@ -126,3 +124,17 @@ pub trait EpdDriver {
         frame_buffer: &fixedbitset::FixedBitSet,
     ) -> Result<(), DisplayError>;
 }
+
+/// Display rotation.
+// #[derive(Copy, Clone, Debug)]
+pub enum DisplayRotation {
+    /// No rotation, normal display
+    Rotate0,
+    /// Rotate by 90 degrees clockwise
+    Rotate90,
+    /// Rotate by 180 degrees clockwise, upside down display
+    Rotate180,
+    /// Rotate 270 degrees clockwise
+    Rotate270,
+}
+
