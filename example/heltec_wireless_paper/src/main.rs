@@ -6,8 +6,8 @@ fn panic(_: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
-/// provide logging primitives
-use log::*;
+// /// provide logging primitives
+// use log::*;
 
 // support esp32
 // This creates a default app-descriptor required by the esp-idf bootloader.
@@ -15,7 +15,7 @@ use log::*;
 esp_bootloader_esp_idf::esp_app_desc!();
 use esp_hal::clock::CpuClock;
 use esp_hal::main;
-use esp_hal::time::Instant;
+// use esp_hal::time::Instant;
 extern crate alloc;
 
 #[main]

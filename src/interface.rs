@@ -64,6 +64,18 @@ where
     }
 }
 
+pub trait WaitUntilIdle {
+    /// blocks until idle, or returns error upon timeout
+    fn wait_until_idle(&mut self) ->
+        Result<(), display_interface::DisplayError>;
+}
+/// Yielding 
+pub trait AsyncWaitUntilIdle {
+    /// yields until idle, or returns error upon timeout
+    async fn wait_until_idle(&mut self) ->
+        Result<(), display_interface::DisplayError>;
+}
+
 #[maybe_async_cfg::maybe(
     sync(keep_self, cfg(not(feature="async"))),
     async(keep_self, feature="async"),
@@ -71,7 +83,7 @@ where
         AsyncWaitUntilIdle(async, sync="WaitUntilIdle"),
     )
 )]
-impl<SPI, DC, NBUSY, NRESET, DELAY> crate::AsyncWaitUntilIdle for EpdInterface<SPI, DC, NBUSY, NRESET, DELAY>
+impl<SPI, DC, NBUSY, NRESET, DELAY> AsyncWaitUntilIdle for EpdInterface<SPI, DC, NBUSY, NRESET, DELAY>
  where
     SPI: SpiDevice,
     NBUSY: InputPin,
