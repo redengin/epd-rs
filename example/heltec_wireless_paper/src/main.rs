@@ -105,23 +105,22 @@ fn main() -> ! {
     // create the display
     let mut display = epd_rs::EpdDrawTarget::new(driver, epd_rs::DisplayRotation::Rotate0);
 
-    // let example_screen = ExampleScreen::new();
+    let example_screen = ExampleScreen::new();
 
     let mut frame_rate: f32 = 0.0;
     loop {
-        // update the screen
-        // let _ = example_screen
-        //     .update(&mut display, frame_rate)
-        //     .map_err(|e| error!("{:?}", e));
-
         // monitor the frame rate
         trace!("starting refresh...");
         let frame_start = Instant::now();
 
+        // update the display
+        let _ = example_screen
+            .update(&mut display, frame_rate)
+            .map_err(|e| error!("{:?}", e));
+
+        // refresh the display
         let _ = display.refresh().map_err(|e| error!("{:?}", e));
-
         trace!("refresh completed");
-
         let frame_period = frame_start.elapsed();
         frame_rate = 1000.0 / (frame_period.as_millis() as f32);
         info!(
@@ -134,6 +133,7 @@ fn main() -> ! {
 use embedded_graphics::prelude::*;
 use embedded_graphics::mono_font::MonoTextStyle;
 use embedded_graphics::mono_font::ascii::FONT_10X20;
+use embedded_graphics::text::Text;
 use embedded_graphics::pixelcolor::BinaryColor;
 use display_interface::DisplayError;
 struct ExampleScreen {
@@ -157,7 +157,7 @@ impl ExampleScreen {
 
         // update the display
         info!("udpdating display...");
-        // let _ = Text::new("Hello World!", Point::zero(), self.text).draw(display);
+        let _ = Text::new("Hello World!", Point::zero(), self.text).draw(display);
 
         // let mut fps_text_string = String::new();
         // let _ = write!(&mut fps_text_string, "FPS: {frame_rate:.0}");
