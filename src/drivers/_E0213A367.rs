@@ -172,7 +172,7 @@ where
             .send_commands(DataFormat::U8(&[0x24]))
             .await?;
         self.epd_interface
-            .send_data(DataFormat::U8(&[0xFF; ((122 / 8 + 1) * 255)]))
+            .send_data(DataFormat::U8(&[0xFF; ((122 / 8) * 255)]))
             .await?;
         // for block in frame_buffer.as_slice() {
         //     let buffer = block.reverse_bits().to_be_bytes();
