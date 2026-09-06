@@ -6,10 +6,22 @@ use embedded_graphics::pixelcolor::BinaryColor;
 use display_interface::DisplayError;
 use embedded_graphics::primitives::Rectangle;
 
+/// Display rotation.
+pub enum DisplayRotation {
+    /// No rotation, normal display
+    Rotate0,
+    /// Rotate by 90 degrees clockwise
+    Rotate90,
+    /// Rotate by 180 degrees clockwise, upside down display
+    Rotate180,
+    /// Rotate 270 degrees clockwise
+    Rotate270,
+}
+
 pub struct EpdDrawTarget<DRIVER> {
     driver: DRIVER,
-    frame_buffer: fixedbitset::FixedBitSet,
     rotation: DisplayRotation,
+    frame_buffer: fixedbitset::FixedBitSet,
 }
 
 #[maybe_async_cfg::maybe(
@@ -22,12 +34,11 @@ where
 {
     pub fn new(driver: DRIVER, rotation: DisplayRotation) -> Self {
         let dimensions = driver.dimensions();
-        let width = dimensions.width;
-        let height = dimensions.height;
+        let pixel_count = (dimensions.width / 8) * dimensions.height;
         Self {
             driver,
-            frame_buffer: fixedbitset::FixedBitSet::with_capacity(((width / 8) * height) as usize),
             rotation,
+            frame_buffer: fixedbitset::FixedBitSet::with_capacity(pixel_count as usize),
         }
     }
 
@@ -58,6 +69,7 @@ where
     }
 }
 
+/// provide embedded_graphics DrawTarget
 impl<DRIVER> embedded_graphics::draw_target::DrawTarget for EpdDrawTarget<DRIVER>
 where
     DRIVER: EpdDriver,
@@ -72,13 +84,12 @@ where
     {
         for pixel in pixels.into_iter() {
             let Pixel(point, color) = pixel;
-            match self.frame_buffer_bit(point) {
-                None => { /* ignore pixels outside of dimensions */ }
-                Some(bit) => match color {
+            if let Some(bit) = self.frame_buffer_bit(point) {
+                match color {
                     BinaryColor::Off => self.frame_buffer.remove(bit),
                     BinaryColor::On => self.frame_buffer.insert(bit),
-                },
-            }
+                };
+            };
         }
         Ok(())
     }
@@ -93,6 +104,7 @@ where
     }
 }
 
+/// required support for embedded_graphics DrawTarget
 impl<DRIVER> embedded_graphics::geometry::Dimensions for EpdDrawTarget<DRIVER>
 where
     DRIVER: EpdDriver,
@@ -112,6 +124,7 @@ where
     }
 }
 
+/// Trait for EpdDrivers to support EpdDrawTarget
 #[maybe_async_cfg::maybe(
     sync(keep_self, cfg(not(feature = "async"))),
     async(keep_self, feature = "async")
@@ -124,17 +137,3 @@ pub trait EpdDriver {
         frame_buffer: &fixedbitset::FixedBitSet,
     ) -> Result<(), DisplayError>;
 }
-
-/// Display rotation.
-// #[derive(Copy, Clone, Debug)]
-pub enum DisplayRotation {
-    /// No rotation, normal display
-    Rotate0,
-    /// Rotate by 90 degrees clockwise
-    Rotate90,
-    /// Rotate by 180 degrees clockwise, upside down display
-    Rotate180,
-    /// Rotate 270 degrees clockwise
-    Rotate270,
-}
-

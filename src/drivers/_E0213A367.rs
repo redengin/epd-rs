@@ -1,10 +1,14 @@
+/// provide logging primitives
+use defmt_or_log::*;
+const TAG: &str = "[E0213A367]";
+
 // /// provide command protocol
 // mod commands;
 // use commands::*;
 
-use display_interface::DataFormat;
 /// provide display_interface primitives
 use display_interface::DisplayError;
+use display_interface::DataFormat;
 
 #[allow(non_camel_case_types)]
 #[allow(dead_code)]
@@ -45,6 +49,7 @@ where
     }
 
     pub async fn init(&mut self) -> Result<(), DisplayError> {
+        trace!("{TAG} configuring screen controller...");
         // set display option to FULLSCREEN
         self.epd_interface
             .send_commands(DataFormat::U8(&[0x37]))
@@ -96,15 +101,14 @@ where
         // self.epd_interface.send_commands(DataFormat::U8(&[0x22])).await?;
         // self.epd_interface.send_data(DataFormat::U8(&[0xFF])).await?;
 
+        trace!("{TAG} configured screen controller");
         Ok(())
     }
 
-    async fn update(
-        &mut self,
-        // FIXME
-        _frame_buffer: &fixedbitset::FixedBitSet,
-    ) -> Result<(), DisplayError> {
-         // set the X cursor
+    /// POST: send b/w buffer and then red buffer
+    pub async fn start_update(&mut self) -> Result<(), DisplayError> {
+        trace!("{TAG} starting update...");
+        // set the X cursor
         self.epd_interface
             .send_commands(DataFormat::U8(&[0x4E]))
             .await?;
@@ -118,34 +122,23 @@ where
         self.epd_interface
             .send_data(DataFormat::U8(&[0x00]))
             .await?;
+        trace!("{TAG} started update");
+        Ok(())
+    }
 
-        // update B/W (fast mode OFF)
-        self.epd_interface
-            .send_commands(DataFormat::U8(&[0x24]))
-            .await?;
-        self.epd_interface
-            .send_data(DataFormat::U8(&[0xFF; ((122 / 8 + 1) * 255)]))
-            .await?;
-        // update B/W "red" (fast mode OFF)
-        self.epd_interface
-            .send_commands(DataFormat::U8(&[0x26]))
-            .await?;
-        self.epd_interface
-            .send_data(DataFormat::U8(&[0xFF; ((122 / 8 + 1) * 255)]))
-            .await?;
-
+    pub async fn finish_update_and_refresh(&mut self) -> Result<(), DisplayError> {
+        trace!("{TAG} starting refresh...");
         // start refresh
         self.epd_interface
             .send_commands(DataFormat::U8(&[0x20]))
             .await?;
         self.epd_interface.wait_until_idle().await?;
 
+        trace!("{TAG} refresh completed");
         Ok(())
     }
 }
 
-/// provide embedded graphics primitives
-use embedded_graphics::prelude::*;
 
 #[maybe_async_cfg::maybe(
     sync(keep_self, cfg(not(feature = "async"))),
@@ -153,6 +146,7 @@ use embedded_graphics::prelude::*;
     idents(
         AsyncWriteOnlyDataCommand(async, sync = "WriteOnlyDataCommand"),
         AsyncWaitUntilIdle(async, sync = "WaitUntilIdle"),
+        dimensions(keep),
         refresh(keep),
     )
 )]
@@ -160,42 +154,48 @@ impl<DI> crate::graphics::EpdDriver for E0213A367<DI>
 where
     DI: display_interface::AsyncWriteOnlyDataCommand + crate::interface::AsyncWaitUntilIdle,
 {
-    fn dimensions(&self) -> Size {
+    fn dimensions(&self) -> embedded_graphics::geometry::Size
+    {
         self.dimensions
     }
 
     async fn refresh(
         &mut self,
         frame_buffer: &fixedbitset::FixedBitSet,
-    ) -> Result<(), DisplayError> {
-        self.update(frame_buffer).await
+    ) -> Result<(), DisplayError>
+    {
+        self.start_update().await?;
+
+        // update B/W (fast mode OFF)
+        trace!("{TAG} updating B/W buffer...");
+        self.epd_interface
+            .send_commands(DataFormat::U8(&[0x24]))
+            .await?;
+        self.epd_interface
+            .send_data(DataFormat::U8(&[0xFF; ((122 / 8 + 1) * 255)]))
+            .await?;
+        // for block in frame_buffer.as_slice() {
+        //     let buffer = block.reverse_bits().to_be_bytes();
+        //     self.epd_interface.send_data(DataFormat::U8(&buffer[..])).await?
+        // }
+        trace!("{TAG} updated B/W buffer");
+
+        // update RED (fast mode OFF)
+        trace!("{TAG} updating RED buffer...");
+        self.epd_interface
+            .send_commands(DataFormat::U8(&[0x26]))
+            .await?;
+        self.epd_interface
+            .send_data(DataFormat::U8(&[0xFF; ((122 / 8) * 255)]))
+            .await?;
+        // for block in frame_buffer.as_slice() {
+        //     let buffer = block.reverse_bits().to_be_bytes();
+        //     self.epd_interface.send_data(DataFormat::U8(&buffer[..])).await?
+        // }
+        trace!("{TAG} updated RED buffer");
+
+        self.finish_update_and_refresh().await?;
+        Ok(())
     }
+
 }
-
-// {
-//     fn dimensions(&self) ->  embedded_graphics::prelude::Size {
-//         self.dimensions
-//     }
-// }
-
-// #[maybe_async_cfg::maybe(
-//     sync(keep_self, cfg(not(feature = "async"))),
-//     async(keep_self, feature = "async"),
-//     idents(
-//         AsyncWriteOnlyDataCommand(async, sync = "WriteOnlyDataCommand"),
-//         flush(keep),
-//     )
-// )]
-// impl<DI> crate::EpdDrawTarget for E0213A367<DI>
-// where
-//     DI: display_interface::AsyncWriteOnlyDataCommand + crate::WaitUntilIdle,
-// {
-//     // type Color = embedded_graphics::pixelcolor::BinaryColor;
-
-//     async fn flush(&mut self) -> Result<(), display_interface::DisplayError>
-//     {
-//         self.refresh().await?;
-
-//         Ok(())
-//     }
-// }

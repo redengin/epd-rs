@@ -1,5 +1,6 @@
 /// provide logging primitives
 use defmt_or_log::*;
+const TAG: &str = "[EpdInterface]";
 
 /// use standard display errors
 use display_interface::DisplayError;
@@ -20,7 +21,7 @@ use embedded_hal_async::delay::DelayNs;
 
 /// Hardware interface to an EPD
 pub struct EpdInterface<SPI, DC, NBUSY, NRESET, DELAY> {
-    spi_interface: display_interface_spi::SPIInterface<SPI, DC>,
+    pub spi_interface: display_interface_spi::SPIInterface<SPI, DC>,
     /// low while busy
     n_busy: NBUSY,
     /// low to hold in reset
@@ -57,10 +58,12 @@ where
 
     /// perform a hardware reset of the EPD
     pub async fn reset(&mut self) {
+        trace!("{TAG} performing hardware reset...");
         self.n_reset.set_low().unwrap();
         self.delay.delay_ms(10).await;
         self.n_reset.set_high().unwrap();
         self.delay.delay_ms(10).await;
+        trace!("{TAG} hardware reset completed");
     }
 }
 
@@ -93,19 +96,19 @@ where
     async fn wait_until_idle(&mut self) -> Result<(), DisplayError> {
         for _ in 0..4 {
             if self.n_busy.is_low().expect("failed to read busy pin") {
-                info!("idle asserted");
+                trace!("{TAG} idle asserted");
                 return Ok(());
             }
             self.delay.delay_ms(500).await;
         }
 
-        error!("idle not asserted");
+        error!("{TAG} idle not asserted");
         Err(display_interface::DisplayError::RSError)
     }
 }
 
-// Provide display_interface::[WriteOnlyDataCommand/AsycnWriteOnlyDataCommand]
-//------------------------------------------------------------------------------
+/// Provide display_interface::[WriteOnlyDataCommand/AsycnWriteOnlyDataCommand]
+/// proxy for display_interface_spi
 #[cfg(feature = "async")]
 use display_interface::AsyncWriteOnlyDataCommand;
 #[cfg(not(feature = "async"))]
