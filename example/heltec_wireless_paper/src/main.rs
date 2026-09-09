@@ -39,7 +39,9 @@ fn main() -> ! {
     let dc_pin = peripherals.GPIO5;
     let reset_pin = peripherals.GPIO6;
     let busy_pin = peripherals.GPIO7;
-    // const WIDTH: u32 = 120;
+
+    /// NOTE: display is described as 122 pixels wide,
+    ///       but must be divisible by 8 per the controller
     const WIDTH: u32 = 128;
     const HEIGHT: u32 = 250;
     // ------------------------------------------------------------------
