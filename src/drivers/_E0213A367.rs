@@ -35,11 +35,10 @@ where
 {
     pub async fn new(
         epd_interface: DI,
-        dimensions: embedded_graphics::geometry::Size,
     ) -> Result<Self, DisplayError> {
         let mut this = Self {
             epd_interface,
-            dimensions,
+            dimensions: embedded_graphics::geometry::Size{width: 128, height: 250},
         };
 
         // initialize the hardware

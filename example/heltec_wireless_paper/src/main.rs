@@ -39,11 +39,6 @@ fn main() -> ! {
     let dc_pin = peripherals.GPIO5;
     let reset_pin = peripherals.GPIO6;
     let busy_pin = peripherals.GPIO7;
-
-    /// NOTE: display is described as 122 pixels wide,
-    ///       but must be divisible by 8 per the controller
-    const WIDTH: u32 = 128;
-    const HEIGHT: u32 = 250;
     // ------------------------------------------------------------------
 
     // power on the screen
@@ -100,7 +95,6 @@ fn main() -> ! {
     // Choose driver
     let driver = epd_rs::drivers::E0213A367::new(
         display_interface,
-        embedded_graphics::geometry::Size::new(WIDTH, HEIGHT),
     ).unwrap();
 
     // create the display
