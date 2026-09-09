@@ -6,9 +6,9 @@ const TAG: &str = "[E0213A367]";
 // mod commands;
 // use commands::*;
 
+use display_interface::DataFormat;
 /// provide display_interface primitives
 use display_interface::DisplayError;
-use display_interface::DataFormat;
 
 #[allow(non_camel_case_types)]
 #[allow(dead_code)]
@@ -49,96 +49,20 @@ where
     }
 
     pub async fn init(&mut self) -> Result<(), DisplayError> {
-        trace!("{TAG} configuring screen controller...");
-        // set display option to FULLSCREEN
-        self.epd_interface
-            .send_commands(DataFormat::U8(&[0x37]))
-            .await?;
-        self.epd_interface
-            .send_data(DataFormat::U8(&[0x00, 0x80, 0x03, 0x0E]))
-            .await?;
-
-        // set border waveform
-        self.epd_interface
-            .send_commands(DataFormat::U8(&[0x3C]))
-            .await?;
-        self.epd_interface
-            .send_data(DataFormat::U8(&[0x01]))
-            .await?;
+        // trace!("{TAG} sending SW Reset...");
+        self.epd_interface.send_commands(DataFormat::U8(&[0x12])).await?;
         self.epd_interface.wait_until_idle().await?;
 
-        // configure data entry mode
-        self.epd_interface
-            .send_commands(DataFormat::U8(&[0x11]))
-            .await?;
-        self.epd_interface
-            .send_data(DataFormat::U8(&[0x03]))
-            .await?;
+        self.epd_interface.send_commands(DataFormat::U8(&[0x37])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0x00, 0x80, 0x03, 0x0E])).await?;
+ 
+        self.epd_interface.send_commands(DataFormat::U8(&[0x3C])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0x01])).await?;
 
-        // select memory region X
-        self.epd_interface
-            .send_commands(DataFormat::U8(&[0x44]))
-            .await?;
-        self.epd_interface
-            .send_data(DataFormat::U8(&[0x00, (self.dimensions.width / 8) as u8]))
-            .await?;
-        // select memory region Y
-        self.epd_interface
-            .send_commands(DataFormat::U8(&[0x45]))
-            .await?;
-        self.epd_interface
-            .send_data(DataFormat::U8(&[0x00, self.dimensions.height as u8]))
-            .await?;
-
-        // configure normal mode
-        self.epd_interface
-            .send_commands(DataFormat::U8(&[0x22]))
-            .await?;
-        self.epd_interface
-            .send_data(DataFormat::U8(&[0xF7]))
-            .await?;
-        // configure fast mode
-        // self.epd_interface.send_commands(DataFormat::U8(&[0x22])).await?;
-        // self.epd_interface.send_data(DataFormat::U8(&[0xFF])).await?;
-
-        trace!("{TAG} configured screen controller");
         Ok(())
     }
 
-    /// POST: send b/w buffer and then red buffer
-    pub async fn start_update(&mut self) -> Result<(), DisplayError> {
-        trace!("{TAG} starting update...");
-        // set the X cursor
-        self.epd_interface
-            .send_commands(DataFormat::U8(&[0x4E]))
-            .await?;
-        self.epd_interface
-            .send_data(DataFormat::U8(&[0x00]))
-            .await?;
-        // set the Y cursor
-        self.epd_interface
-            .send_commands(DataFormat::U8(&[0x4F]))
-            .await?;
-        self.epd_interface
-            .send_data(DataFormat::U8(&[0x00]))
-            .await?;
-        trace!("{TAG} started update");
-        Ok(())
-    }
-
-    pub async fn finish_update_and_refresh(&mut self) -> Result<(), DisplayError> {
-        trace!("{TAG} starting refresh...");
-        // start refresh
-        self.epd_interface
-            .send_commands(DataFormat::U8(&[0x20]))
-            .await?;
-        self.epd_interface.wait_until_idle().await?;
-
-        trace!("{TAG} refresh completed");
-        Ok(())
-    }
 }
-
 
 #[maybe_async_cfg::maybe(
     sync(keep_self, cfg(not(feature = "async"))),
@@ -154,48 +78,58 @@ impl<DI> crate::graphics::EpdDriver for E0213A367<DI>
 where
     DI: display_interface::AsyncWriteOnlyDataCommand + crate::interface::AsyncWaitUntilIdle,
 {
-    fn dimensions(&self) -> embedded_graphics::geometry::Size
-    {
+    fn dimensions(&self) -> embedded_graphics::geometry::Size {
         self.dimensions
     }
 
     async fn refresh(
         &mut self,
         frame_buffer: &fixedbitset::FixedBitSet,
-    ) -> Result<(), DisplayError>
-    {
-        self.start_update().await?;
+    ) -> Result<(), DisplayError> {
 
-        // update B/W (fast mode OFF)
-        trace!("{TAG} updating B/W buffer...");
-        self.epd_interface
-            .send_commands(DataFormat::U8(&[0x24]))
-            .await?;
-        self.epd_interface
-            .send_data(DataFormat::U8(&[0xFF; ((122 / 8) * 255)]))
-            .await?;
-        // for block in frame_buffer.as_slice() {
-        //     let buffer = block.reverse_bits().to_be_bytes();
-        //     self.epd_interface.send_data(DataFormat::U8(&buffer[..])).await?
-        // }
-        trace!("{TAG} updated B/W buffer");
+        self.epd_interface.send_commands(DataFormat::U8(&[0x11])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0x03])).await?;
+        self.epd_interface.send_commands(DataFormat::U8(&[0x44])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0x00,0x0F])).await?;
+        self.epd_interface.send_commands(DataFormat::U8(&[0x45])).await?;
+        // self.epd_interface.send_data(DataFormat::U8(&[0x00,249])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0x00,250])).await?;
+        self.epd_interface.send_commands(DataFormat::U8(&[0x4E])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0x00])).await?;
+        self.epd_interface.send_commands(DataFormat::U8(&[0x4F])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0x00])).await?;
 
-        // update RED (fast mode OFF)
-        trace!("{TAG} updating RED buffer...");
-        self.epd_interface
-            .send_commands(DataFormat::U8(&[0x26]))
-            .await?;
-        self.epd_interface
-            .send_data(DataFormat::U8(&[0xFF; ((122 / 8) * 255)]))
-            .await?;
-        // for block in frame_buffer.as_slice() {
-        //     let buffer = block.reverse_bits().to_be_bytes();
-        //     self.epd_interface.send_data(DataFormat::U8(&buffer[..])).await?
-        // }
-        trace!("{TAG} updated RED buffer");
+        self.epd_interface.send_commands(DataFormat::U8(&[0x24])).await?;
+        // self.epd_interface.send_data(DataFormat::U8(&[0x00; (120 * 250)])).await?;
 
-        self.finish_update_and_refresh().await?;
-        Ok(())
+        info!("frambuffer has {} bits", frame_buffer.len());
+        for block in frame_buffer.as_slice()
+        {
+            let buffer = block.reverse_bits().to_be_bytes();
+            self.epd_interface.send_data(DataFormat::U8(&buffer[..])).await?;
+            // self.epd_interface.send_data(DataFormat::U8(&[0; (120/8 *250)])).await?;
+        }
+
+        self.epd_interface.send_commands(DataFormat::U8(&[0x4E])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0x00])).await?;
+        self.epd_interface.send_commands(DataFormat::U8(&[0x4F])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0x00])).await?;
+        self.epd_interface.send_commands(DataFormat::U8(&[0x26])).await?;
+        // self.epd_interface.send_data(DataFormat::U8(&[0x00; (120 * 250)])).await?;
+        for block in frame_buffer.as_slice()
+        {
+            let buffer = (*block).reverse_bits().to_be_bytes();
+            self.epd_interface.send_data(DataFormat::U8(&buffer[..])).await?;
+            // self.epd_interface.send_data(DataFormat::U8(&[0; (120/8 * 250)])).await?;
+        }
+
+
+        self.epd_interface.send_commands(DataFormat::U8(&[0x22])).await?;
+        self.epd_interface.send_data(DataFormat::U8(&[0xF7])).await?;
+        self.epd_interface.send_commands(DataFormat::U8(&[0x20])).await?;
+        self.epd_interface.wait_until_idle().await?;
+
+
+       Ok(())
     }
-
 }

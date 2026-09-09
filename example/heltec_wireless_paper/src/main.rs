@@ -1,10 +1,11 @@
 #![no_std]
 #![no_main]
 
-#[panic_handler]
-fn panic(_: &core::panic::PanicInfo) -> ! {
-    loop {}
-}
+// #[panic_handler]
+// fn panic(_: &core::panic::PanicInfo) -> ! {
+//     loop {}
+// }
+use esp_backtrace::*;
 
 /// provide logging primitives
 use log::*;
@@ -41,7 +42,8 @@ fn main() -> ! {
     let dc_pin = peripherals.GPIO5;
     let reset_pin = peripherals.GPIO6;
     let busy_pin = peripherals.GPIO7;
-    const WIDTH: u32 = 122;
+    // const WIDTH: u32 = 120;
+    const WIDTH: u32 = 128;
     const HEIGHT: u32 = 250;
     // ------------------------------------------------------------------
 
@@ -58,7 +60,9 @@ fn main() -> ! {
     let spi = esp_hal::spi::master::Spi::new(
         peripherals.SPI3,
         esp_hal::spi::master::Config::default()
-            .with_frequency(esp_hal::time::Rate::from_mhz(20)),
+            // .with_frequency(esp_hal::time::Rate::from_mhz(20)),
+            // .with_frequency(esp_hal::time::Rate::from_mhz(20)),
+            ,
     )
     .unwrap()
     .with_sck(sck_pin)
@@ -136,6 +140,8 @@ use embedded_graphics::mono_font::ascii::FONT_10X20;
 use embedded_graphics::text::Text;
 use embedded_graphics::pixelcolor::BinaryColor;
 use display_interface::DisplayError;
+use alloc::string::String;
+use core::fmt::Write;
 struct ExampleScreen {
     text: embedded_graphics::mono_font::MonoTextStyle<'static, BinaryColor>,
 }
@@ -156,18 +162,22 @@ impl ExampleScreen {
         let _ = display.clear(embedded_graphics::pixelcolor::BinaryColor::Off);
 
         // update the display
-        info!("udpdating display...");
+        trace!("udpdating display...");
         let _ = Text::new("Hello World!", Point::zero(), self.text).draw(display);
+        trace!("sent hello world...");
 
-        // let mut fps_text_string = String::new();
-        // let _ = write!(&mut fps_text_string, "FPS: {frame_rate:.0}");
-        // let _ = Text::with_alignment(
-        //     &fps_text_string,
-        //     display.bounding_box().center(),
-        //     self.text,
-        //     embedded_graphics::text::Alignment::Center,
-        // )
-        // .draw(display);
+        let mut fps_text_string = String::new();
+        let _ = write!(&mut fps_text_string, "FPS: {frame_rate:.0}");
+        let _ = Text::new(&fps_text_string, Point::zero(), self.text).draw(display);
+        let _ = Text::with_alignment(
+            // &fps_text_string,
+            "FPS: 0",
+            display.bounding_box().center(),
+            self.text,
+            embedded_graphics::text::Alignment::Center,
+        )
+        .draw(display);
+        trace!("sent fps...");
 
         info!("udpdated display");
         Ok(())
