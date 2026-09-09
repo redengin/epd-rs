@@ -1,10 +1,7 @@
 #![no_std]
 #![no_main]
 
-// #[panic_handler]
-// fn panic(_: &core::panic::PanicInfo) -> ! {
-//     loop {}
-// }
+/// use backtrace panic handler
 use esp_backtrace::*;
 
 /// provide logging primitives
@@ -107,7 +104,7 @@ fn main() -> ! {
     ).unwrap();
 
     // create the display
-    let mut display = epd_rs::EpdDrawTarget::new(driver, epd_rs::DisplayRotation::Rotate0);
+    let mut display = epd_rs::EpdDrawTarget::new(driver, epd_rs::DisplayRotation::Rotate270);
 
     let example_screen = ExampleScreen::new();
 
@@ -163,15 +160,15 @@ impl ExampleScreen {
 
         // update the display
         trace!("udpdating display...");
-        let _ = Text::new("Hello World!", Point::zero(), self.text).draw(display);
+        let _ = Text::new("Hello World!", Point::new(0, 20), self.text).draw(display);
+
         trace!("sent hello world...");
 
         let mut fps_text_string = String::new();
         let _ = write!(&mut fps_text_string, "FPS: {frame_rate:.0}");
-        let _ = Text::new(&fps_text_string, Point::zero(), self.text).draw(display);
+        // let _ = Text::new(&fps_text_string, Point::zero(), self.text).draw(display);
         let _ = Text::with_alignment(
-            // &fps_text_string,
-            "FPS: 0",
+            &fps_text_string,
             display.bounding_box().center(),
             self.text,
             embedded_graphics::text::Alignment::Center,

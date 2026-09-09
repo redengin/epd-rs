@@ -52,15 +52,15 @@ where
         let height = dimensions.height as i32;
         let translated_point = match self.rotation {
             DisplayRotation::Rotate0 => point,
-            DisplayRotation::Rotate90 => Point::new(point.y, point.x),
+            DisplayRotation::Rotate90 => Point::new(point.y, height - point.x),
             DisplayRotation::Rotate180 => Point::new(width - point.x, height - point.y),
-            DisplayRotation::Rotate270 => Point::new(height - point.x, width - point.y),
+            DisplayRotation::Rotate270 => Point::new(width - point.y, point.x),
         };
 
         return if (translated_point.x < 0)
             || (translated_point.y < 0)
-            || (translated_point.x > width)
-            || (translated_point.y > height)
+            || (translated_point.x >= width)
+            || (translated_point.y >= height)
         {
             None
         } else {
