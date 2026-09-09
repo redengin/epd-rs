@@ -1,6 +1,6 @@
-/// provide logging primitives
-use defmt_or_log::*;
-const TAG: &str = "[E0213A367]";
+// /// provide logging primitives
+// use defmt_or_log::*;
+// const TAG: &str = "[E0213A367]";
 
 // /// provide command protocol
 // mod commands;
@@ -100,14 +100,10 @@ where
         self.epd_interface.send_data(DataFormat::U8(&[0x00])).await?;
 
         self.epd_interface.send_commands(DataFormat::U8(&[0x24])).await?;
-        // self.epd_interface.send_data(DataFormat::U8(&[0x00; (120 * 250)])).await?;
-
-        info!("frambuffer has {} bits", frame_buffer.len());
         for block in frame_buffer.as_slice()
         {
             let buffer = block.reverse_bits().to_be_bytes();
             self.epd_interface.send_data(DataFormat::U8(&buffer[..])).await?;
-            // self.epd_interface.send_data(DataFormat::U8(&[0; (120/8 *250)])).await?;
         }
 
         self.epd_interface.send_commands(DataFormat::U8(&[0x4E])).await?;
@@ -115,12 +111,10 @@ where
         self.epd_interface.send_commands(DataFormat::U8(&[0x4F])).await?;
         self.epd_interface.send_data(DataFormat::U8(&[0x00])).await?;
         self.epd_interface.send_commands(DataFormat::U8(&[0x26])).await?;
-        // self.epd_interface.send_data(DataFormat::U8(&[0x00; (120 * 250)])).await?;
         for block in frame_buffer.as_slice()
         {
             let buffer = (*block).reverse_bits().to_be_bytes();
             self.epd_interface.send_data(DataFormat::U8(&buffer[..])).await?;
-            // self.epd_interface.send_data(DataFormat::U8(&[0; (120/8 * 250)])).await?;
         }
 
 

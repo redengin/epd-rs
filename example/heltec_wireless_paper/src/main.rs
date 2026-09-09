@@ -2,7 +2,7 @@
 #![no_main]
 
 /// use backtrace panic handler
-use esp_backtrace::*;
+use esp_backtrace as _;
 
 /// provide logging primitives
 use log::*;
@@ -59,9 +59,7 @@ fn main() -> ! {
     let spi = esp_hal::spi::master::Spi::new(
         peripherals.SPI3,
         esp_hal::spi::master::Config::default()
-            // .with_frequency(esp_hal::time::Rate::from_mhz(20)),
-            // .with_frequency(esp_hal::time::Rate::from_mhz(20)),
-            ,
+            .with_frequency(esp_hal::time::Rate::from_mhz(20)),
     )
     .unwrap()
     .with_sck(sck_pin)
@@ -130,6 +128,8 @@ fn main() -> ! {
             "frame_period: {} ms   FPS: {frame_rate:.0} Hz",
             frame_period.as_millis()
         );
+
+        esp_hal::delay::Delay::new().delay_millis(5000);
     }
 }
 
@@ -147,18 +147,18 @@ struct ExampleScreen {
 impl ExampleScreen {
     pub fn new() -> Self {
         Self {
-            text: MonoTextStyle::new(&FONT_10X20, BinaryColor::On),
+            // per convention BinaryColor::Off is BLACK
+            text: MonoTextStyle::new(&FONT_10X20, BinaryColor::Off),
         }
     }
 
-    // pub fn update<DI>(
     pub fn update(
         &self,
         display: &mut impl DrawTarget<Color = BinaryColor>,
         frame_rate: f32,
     ) -> Result<(), DisplayError> {
-        // clear the display
-        let _ = display.clear(embedded_graphics::pixelcolor::BinaryColor::Off);
+        // clear the display - per convention BinaryColor::On is WHITE
+        let _ = display.clear(embedded_graphics::pixelcolor::BinaryColor::On);
 
         // update the display
         trace!("udpdating display...");

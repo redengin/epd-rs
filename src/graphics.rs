@@ -1,6 +1,6 @@
 /// provide logging primitives
-use defmt_or_log::*;
-const TAG: &str = "[EpdDrawTarget]";
+// use defmt_or_log::*;
+// const TAG: &str = "[EpdDrawTarget]";
 
 use embedded_graphics::pixelcolor::BinaryColor;
 /// provide embedded graphics primitives
@@ -38,7 +38,7 @@ where
 {
     pub fn new(driver: DRIVER, rotation: DisplayRotation) -> Self {
         let dimensions = driver.dimensions();
-        let pixel_count = (dimensions.width  * dimensions.height);
+        let pixel_count = dimensions.width * dimensions.height;
         Self {
             driver,
             rotation,
