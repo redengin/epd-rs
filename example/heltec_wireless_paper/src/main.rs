@@ -123,13 +123,14 @@ fn main() -> ! {
             frame_period.as_millis()
         );
 
-        esp_hal::delay::Delay::new().delay_millis(5000);
+        esp_hal::delay::Delay::new().delay_millis(1000);
     }
 }
 
 use embedded_graphics::prelude::*;
 use embedded_graphics::mono_font::MonoTextStyle;
-use embedded_graphics::mono_font::ascii::FONT_10X20;
+// use embedded_graphics::mono_font::ascii::FONT_10X20;
+use profont::PROFONT_24_POINT;
 use embedded_graphics::text::Text;
 use embedded_graphics::pixelcolor::BinaryColor;
 use display_interface::DisplayError;
@@ -142,7 +143,8 @@ impl ExampleScreen {
     pub fn new() -> Self {
         Self {
             // per convention BinaryColor::Off is BLACK
-            text: MonoTextStyle::new(&FONT_10X20, BinaryColor::Off),
+            // text: MonoTextStyle::new(&FONT_10X20, BinaryColor::Off),
+            text: MonoTextStyle::new(&PROFONT_24_POINT, BinaryColor::Off),
         }
     }
 

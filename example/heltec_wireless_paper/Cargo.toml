@@ -25,6 +25,7 @@ epd-rs = { path = "../..", features = ["log"]}
 display-interface = "*"
 display-interface-spi = "*"
 embedded-graphics = "*"
+profont = "*"
 
 # For fine tuning these settings, please refer to https://doc.rust-lang.org/cargo/reference/profiles.html
 [profile.dev]
