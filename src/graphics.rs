@@ -1,14 +1,10 @@
-/// provide logging primitives
-// use defmt_or_log::*;
-// const TAG: &str = "[EpdDrawTarget]";
-
-use embedded_graphics::pixelcolor::BinaryColor;
-/// provide embedded graphics primitives
-use embedded_graphics::prelude::*;
-
 /// use standard display errors
 use display_interface::DisplayError;
 use embedded_graphics::primitives::Rectangle;
+
+/// provide embedded graphics primitives
+use embedded_graphics::prelude::*;
+use embedded_graphics::pixelcolor::BinaryColor;
 
 /// Display rotation.
 pub enum DisplayRotation {
@@ -16,42 +12,24 @@ pub enum DisplayRotation {
     Rotate0,
     /// Rotate by 90 degrees clockwise
     Rotate90,
-    /// Rotate by 180 degrees clockwise, upside down display
+    /// Rotate by 180 degrees clockwise
     Rotate180,
     /// Rotate 270 degrees clockwise
     Rotate270,
 }
 
-pub struct EpdDrawTarget<DRIVER> {
+pub struct EpdDisplay<DRIVER> {
     driver: DRIVER,
     rotation: DisplayRotation,
     frame_buffer: fixedbitset::FixedBitSet,
 }
-
-#[maybe_async_cfg::maybe(
-    sync(keep_self, cfg(not(feature = "async"))),
-    async(keep_self, feature = "async"),
-    ident(
-        init(keep),
-    )
-)]
-impl<DRIVER> EpdDrawTarget<DRIVER>
-where
-    DRIVER: EpdDriver,
-{
-    pub async fn init(&mut self) -> Result<(), display_interface::DisplayError>
-    {
-        self.driver.init().await
-    }
-}
-
 #[maybe_async_cfg::maybe(
     sync(keep_self, cfg(not(feature = "async"))),
     async(keep_self, feature = "async")
 )]
-impl<DRIVER> EpdDrawTarget<DRIVER>
+impl<DRIVER> EpdDisplay<DRIVER>
 where
-    DRIVER: EpdDriver,
+    DRIVER: crate::drivers::EpdDriver,
 {
     pub fn new(driver: DRIVER, rotation: DisplayRotation) -> Self {
         let dimensions = driver.dimensions();
@@ -63,7 +41,18 @@ where
         }
     }
 
-    pub fn frame_buffer_bit(&self, point: embedded_graphics::geometry::Point) -> Option<usize> {
+    /// perform a hardware reset and initialize the driver
+    pub async fn init(&mut self) -> Result<(), display_interface::DisplayError>
+    {
+        self.driver.init().await
+    }
+
+    /// refresh the screen
+    pub async fn refresh(&mut self) -> Result<(), DisplayError> {
+        self.driver.refresh(&self.frame_buffer).await
+    }
+
+    fn frame_buffer_bit(&self, point: embedded_graphics::geometry::Point) -> Option<usize> {
         let dimensions = self.driver.dimensions();
         let width = dimensions.width as i32;
         let height = dimensions.height as i32;
@@ -84,16 +73,12 @@ where
             Some((translated_point.x + (translated_point.y * width)) as usize)
         };
     }
-
-    pub async fn refresh(&mut self) -> Result<(), DisplayError> {
-        self.driver.refresh(&self.frame_buffer).await
-    }
 }
 
 /// provide embedded_graphics DrawTarget
-impl<DRIVER> embedded_graphics::draw_target::DrawTarget for EpdDrawTarget<DRIVER>
+impl<DRIVER> embedded_graphics::draw_target::DrawTarget for EpdDisplay<DRIVER>
 where
-    DRIVER: EpdDriver,
+    DRIVER: crate::drivers::EpdDriver,
 {
     type Color = BinaryColor;
 
@@ -126,9 +111,9 @@ where
 }
 
 /// required support for embedded_graphics DrawTarget
-impl<DRIVER> embedded_graphics::geometry::Dimensions for EpdDrawTarget<DRIVER>
+impl<DRIVER> embedded_graphics::geometry::Dimensions for EpdDisplay<DRIVER>
 where
-    DRIVER: EpdDriver,
+    DRIVER: crate::drivers::EpdDriver,
 {
     fn bounding_box(&self) -> Rectangle {
         let dimensions = self.driver.dimensions();
@@ -143,23 +128,4 @@ where
             ),
         };
     }
-}
-
-/// Trait for EpdDrivers to support EpdDrawTarget
-#[maybe_async_cfg::maybe(
-    sync(keep_self, cfg(not(feature = "async"))),
-    async(keep_self, feature = "async")
-)]
-pub trait EpdDriver {
-    fn dimensions(&self) -> Size;
-
-    /// initialize the chip post power-on
-    async fn init(
-        &mut self,
-    ) -> Result<(), DisplayError>;
-
-    async fn refresh(
-        &mut self,
-        frame_buffer: &fixedbitset::FixedBitSet,
-    ) -> Result<(), DisplayError>;
 }
