@@ -30,6 +30,23 @@ pub struct EpdDrawTarget<DRIVER> {
 
 #[maybe_async_cfg::maybe(
     sync(keep_self, cfg(not(feature = "async"))),
+    async(keep_self, feature = "async"),
+    ident(
+        init(keep),
+    )
+)]
+impl<DRIVER> EpdDrawTarget<DRIVER>
+where
+    DRIVER: EpdDriver,
+{
+    pub async fn init(&mut self) -> Result<(), display_interface::DisplayError>
+    {
+        self.driver.init().await
+    }
+}
+
+#[maybe_async_cfg::maybe(
+    sync(keep_self, cfg(not(feature = "async"))),
     async(keep_self, feature = "async")
 )]
 impl<DRIVER> EpdDrawTarget<DRIVER>
