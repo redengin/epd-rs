@@ -24,14 +24,13 @@ pub struct E0213A367<DI> {
     async(keep_self, feature = "async"),
     idents(
         AsyncWriteOnlyDataCommand(async, sync = "WriteOnlyDataCommand"),
-        AsyncWaitUntilIdle(async, sync = "WaitUntilIdle"),
         init(keep),
         update(keep),
     )
 )]
 impl<DI> E0213A367<DI>
 where
-    DI: display_interface::AsyncWriteOnlyDataCommand + crate::interface::AsyncWaitUntilIdle,
+    DI: display_interface::AsyncWriteOnlyDataCommand + crate::interface::IEpdInterface,
 {
     pub async fn new(
         epd_interface: DI,
@@ -60,7 +59,6 @@ where
 
         Ok(())
     }
-
 }
 
 #[maybe_async_cfg::maybe(
@@ -68,17 +66,29 @@ where
     async(keep_self, feature = "async"),
     idents(
         AsyncWriteOnlyDataCommand(async, sync = "WriteOnlyDataCommand"),
-        AsyncWaitUntilIdle(async, sync = "WaitUntilIdle"),
         dimensions(keep),
         refresh(keep),
     )
 )]
 impl<DI> crate::graphics::EpdDriver for E0213A367<DI>
 where
-    DI: display_interface::AsyncWriteOnlyDataCommand + crate::interface::AsyncWaitUntilIdle,
+    DI: display_interface::AsyncWriteOnlyDataCommand + crate::interface::IEpdInterface,
 {
     fn dimensions(&self) -> embedded_graphics::geometry::Size {
         self.dimensions
+    }
+
+    async fn init(
+        &mut self,
+    ) -> Result<(), DisplayError>
+    {
+        // rest the epd interface
+        self.epd_interface.reset().await?;
+
+        // initialize the driver
+        self.init().await?;
+
+        Ok(())
     }
 
     async fn refresh(

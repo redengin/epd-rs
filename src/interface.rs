@@ -2,8 +2,6 @@
 use defmt_or_log::*;
 const TAG: &str = "[EpdInterface]";
 
-/// use standard display errors
-use display_interface::DisplayError;
 /// provide embedded-hal abstractions
 use embedded_hal::digital::{InputPin, OutputPin};
 
@@ -67,25 +65,25 @@ where
     }
 }
 
-#[cfg(not(feature = "async"))]
-pub trait WaitUntilIdle {
-    /// blocks until idle, or returns error upon timeout
-    fn wait_until_idle(&mut self) -> Result<(), display_interface::DisplayError>;
-}
-#[cfg(feature = "async")]
-pub trait AsyncWaitUntilIdle {
-    /// yields until idle, or returns error upon timeout
-    async fn wait_until_idle(&mut self) -> Result<(), display_interface::DisplayError>;
-}
-
-// Provide [WaitUntilIdle/AysncWaitUntilIdle]
-//------------------------------------------------------------------------------
 #[maybe_async_cfg::maybe(
     sync(keep_self, cfg(not(feature = "async"))),
     async(keep_self, feature = "async"),
-    idents(AsyncWaitUntilIdle(async, sync = "WaitUntilIdle"),)
+    idents(
+        reset(keep),
+        wait_until_idle(keep),
+    )
 )]
-impl<SPI, DC, NBUSY, NRESET, DELAY> AsyncWaitUntilIdle
+pub trait IEpdInterface {
+    /// perform a hardware reset
+    async fn reset(&mut self) -> Result<(), display_interface::DisplayError>;
+
+    async fn wait_until_idle(&mut self) -> Result<(), display_interface::DisplayError>;
+}
+#[maybe_async_cfg::maybe(
+    sync(keep_self, cfg(not(feature = "async"))),
+    async(keep_self, feature = "async"),
+)]
+impl<SPI, DC, NBUSY, NRESET, DELAY> IEpdInterface
     for EpdInterface<SPI, DC, NBUSY, NRESET, DELAY>
 where
     SPI: SpiDevice,
@@ -93,7 +91,13 @@ where
     NRESET: OutputPin,
     DELAY: DelayNs,
 {
-    async fn wait_until_idle(&mut self) -> Result<(), DisplayError> {
+    async fn reset(&mut self) -> Result<(), display_interface::DisplayError>
+    {
+        self.reset().await;
+        Ok(())
+    }
+
+    async fn wait_until_idle(&mut self) -> Result<(), display_interface::DisplayError> {
         for _ in 0..4 {
             if self.n_busy.is_low().expect("failed to read busy pin") {
                 trace!("{TAG} idle asserted");
@@ -101,40 +105,33 @@ where
             }
             self.delay.delay_ms(500).await;
         }
-
         error!("{TAG} idle not asserted");
         Err(display_interface::DisplayError::RSError)
     }
 }
 
 /// Provide display_interface::[WriteOnlyDataCommand/AsycnWriteOnlyDataCommand]
-/// proxy for display_interface_spi
-#[cfg(feature = "async")]
-use display_interface::AsyncWriteOnlyDataCommand;
-#[cfg(not(feature = "async"))]
-use display_interface::WriteOnlyDataCommand;
-
 #[maybe_async_cfg::maybe(
     sync(keep_self, cfg(not(feature = "async"))),
     async(keep_self, feature = "async"),
     idents(AsyncWriteOnlyDataCommand(async, sync = "WriteOnlyDataCommand"),)
 )]
-impl<SPI, DC, NBUSY, NRESET, DELAY> AsyncWriteOnlyDataCommand
+impl<SPI, DC, NBUSY, NRESET, DELAY> display_interface::AsyncWriteOnlyDataCommand
     for EpdInterface<SPI, DC, NBUSY, NRESET, DELAY>
 where
-    display_interface_spi::SPIInterface<SPI, DC>: AsyncWriteOnlyDataCommand,
+    display_interface_spi::SPIInterface<SPI, DC>: display_interface::AsyncWriteOnlyDataCommand,
 {
     async fn send_commands(
         &mut self,
         data: display_interface::DataFormat<'_>,
-    ) -> Result<(), DisplayError> {
+    ) -> Result<(), display_interface::DisplayError> {
         self.spi_interface.send_commands(data).await
     }
 
     async fn send_data(
         &mut self,
         data: display_interface::DataFormat<'_>,
-    ) -> Result<(), DisplayError> {
+    ) -> Result<(), display_interface::DisplayError> {
         self.spi_interface.send_data(data).await
     }
 }

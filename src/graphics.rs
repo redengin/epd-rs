@@ -136,6 +136,11 @@ where
 pub trait EpdDriver {
     fn dimensions(&self) -> Size;
 
+    /// initialize the chip post power-on
+    async fn init(
+        &mut self,
+    ) -> Result<(), DisplayError>;
+
     async fn refresh(
         &mut self,
         frame_buffer: &fixedbitset::FixedBitSet,
