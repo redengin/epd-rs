@@ -10,4 +10,4 @@ pub mod drivers;
 
 /// provide embedded graphics DrawTarget
 mod graphics;
-pub use graphics::{DisplayRotation, EpdDrawTarget};
+pub use graphics::{DisplayRotation, EpdDrawTarget, EpdDriver};
