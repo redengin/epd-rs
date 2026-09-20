@@ -78,9 +78,7 @@ where
         self.epd_interface.reset().await?;
 
         // initialize the driver
-        self.init().await?;
-
-        Ok(())
+        self.init().await
     }
 
     async fn refresh(
