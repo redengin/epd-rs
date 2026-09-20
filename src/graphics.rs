@@ -92,8 +92,8 @@ where
             let Pixel(point, color) = pixel;
             if let Some(bit) = self.frame_buffer_bit(point) {
                 match color {
-                    BinaryColor::Off => self.frame_buffer.remove(bit),
-                    BinaryColor::On => self.frame_buffer.insert(bit),
+                    BinaryColor::On => self.frame_buffer.remove(bit),
+                    BinaryColor::Off => self.frame_buffer.insert(bit),
                 };
             };
         }
@@ -103,8 +103,8 @@ where
     /// provide optimized function to clear display
     fn clear(&mut self, color: Self::Color) -> Result<(), Self::Error> {
         match color {
-            BinaryColor::Off => self.frame_buffer.clear(),
-            BinaryColor::On => self.frame_buffer.insert_range(..),
+            BinaryColor::On => self.frame_buffer.clear(),
+            BinaryColor::Off => self.frame_buffer.insert_range(..),
         }
         Ok(())
     }
