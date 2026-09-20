@@ -74,7 +74,7 @@ where
     }
 
     async fn init(&mut self) -> Result<(), DisplayError> {
-        // rest the epd interface
+        // reset the epd interface
         self.epd_interface.reset().await?;
 
         // initialize the driver
