@@ -98,7 +98,7 @@ fn main() -> ! {
     ).unwrap();
 
     // create the display
-    let mut display = epd_rs::EpdDrawTarget::new(driver, epd_rs::DisplayRotation::Rotate270);
+    let mut display = epd_rs::EpdDisplay::new(driver, epd_rs::DisplayRotation::Rotate270);
 
     let example_screen = ExampleScreen::new();
 
